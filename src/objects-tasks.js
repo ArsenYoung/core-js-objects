@@ -97,8 +97,36 @@ function removeProperties(obj, keys) {
  *    compareObjects({a: 1, b: 2}, {a: 1, b: 2}) => true
  *    compareObjects({a: 1, b: 2}, {a: 1, b: 3}) => false
  */
-function compareObjects(/* obj1, obj2 */) {
-  throw new Error('Not implemented');
+function compareObjects(obj1, obj2) {
+  if (!obj1 && !obj2) {
+    return true;
+  }
+
+  if (!obj1 || !obj2) {
+    return false;
+  }
+
+  const obj1properties = Object.entries(obj1);
+  const obj2properties = Object.entries(obj2);
+
+  if (obj1properties.length !== obj2properties.length) {
+    return false;
+  }
+
+  for (let i = 0; i < obj1properties.length; i += 1) {
+    const [obj1key, obj1value] = obj1properties[i];
+    const [obj2key, obj2value] = obj2properties[i];
+
+    if (obj1key.localeCompare(obj2key) !== 0) {
+      return false;
+    }
+
+    if (obj1value !== obj2value) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
