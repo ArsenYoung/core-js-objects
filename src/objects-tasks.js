@@ -5,7 +5,6 @@
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object        *
  *                                                                                                *
  ************************************************************************************************ */
-
 /**
  * Returns shallow copy of an object.
  *
@@ -17,6 +16,60 @@
  *    shallowCopy({a: 2, b: { a: [1, 2, 3]}}) => {a: 2, b: { a: [1, 2, 3]}}
  *    shallowCopy({}) => {}
  */
+/**
+ * Css selectors builder
+ *
+ * Each complex selector can consists of type, id, class, attribute, pseudo-class
+ * and pseudo-element selectors:
+ *
+ *    element#id.class[attr]:pseudoClass::pseudoElement
+ *              \----/\----/\----------/
+ *              Can be several occurrences
+ *
+ * All types of selectors can be combined using the combination ' ','+','~','>' .
+ *
+ * The task is to design a single class, independent classes or classes hierarchy
+ * and implement the functionality to build the css selectors using the provided cssSelectorBuilder.
+ * Each selector should have the stringify() method to output the string representation
+ * according to css specification.
+ *
+ * Provided cssSelectorBuilder should be used as facade only to create your own classes,
+ * for example the first method of cssSelectorBuilder can be like this:
+ *   element: function(value) {
+ *       return new MySuperBaseElementSelector(...)...
+ *   },
+ *
+ * The design of class(es) is totally up to you, but try to make it as simple,
+ * clear and readable as possible.
+ *
+ * @example
+ *
+ *  const builder = cssSelectorBuilder;
+ *
+ *  builder.id('main').class('container').class('editable').stringify()
+ *    => '#main.container.editable'
+ *
+ *  builder.element('a').attr('href$=".png"').pseudoClass('focus').stringify()
+ *    => 'a[href$=".png"]:focus'
+ *
+ *  builder.combine(
+ *      builder.element('div').id('main').class('container').class('draggable'),
+ *      '+',
+ *      builder.combine(
+ *          builder.element('table').id('data'),
+ *          '~',
+ *           builder.combine(
+ *               builder.element('tr').pseudoClass('nth-of-type(even)'),
+ *               ' ',
+ *               builder.element('td').pseudoClass('nth-of-type(even)')
+ *           )
+ *      )
+ *  ).stringify()
+ *    => 'div#main.container.draggable + table#data ~ tr:nth-of-type(even)   td:nth-of-type(even)'
+ *
+ *  For more examples see unit tests.
+ */
+
 function shallowCopy(obj) {
   const result = {};
   return Object.assign(result, obj);
@@ -395,6 +448,7 @@ function group(/* array, keySelector, valueSelector */) {
  * Each complex selector can consists of type, id, class, attribute, pseudo-class
  * and pseudo-element selectors:
  *
+ *
  *    element#id.class[attr]:pseudoClass::pseudoElement
  *              \----/\----/\----------/
  *              Can be several occurrences
@@ -444,32 +498,85 @@ function group(/* array, keySelector, valueSelector */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  result: '',
+  element(value) {
+    const priority = 1;
+    this.check(priority);
+    const newCssSelectorBuilder = Object.create(cssSelectorBuilder);
+    newCssSelectorBuilder.priority = priority;
+    newCssSelectorBuilder.result = this.result + value;
+    return newCssSelectorBuilder;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    const priority = 2;
+    this.check(priority);
+    const newCssSelectorBuilder = Object.create(cssSelectorBuilder);
+    newCssSelectorBuilder.priority = priority;
+    newCssSelectorBuilder.result = `${this.result}#${value}`;
+    return newCssSelectorBuilder;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    const priority = 3;
+    this.check(priority);
+    const newCssSelectorBuilder = Object.create(cssSelectorBuilder);
+    newCssSelectorBuilder.priority = priority;
+    newCssSelectorBuilder.result = `${this.result}.${value}`;
+    return newCssSelectorBuilder;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    const priority = 4;
+    this.check(priority);
+    const newCssSelectorBuilder = Object.create(cssSelectorBuilder);
+    newCssSelectorBuilder.priority = priority;
+    newCssSelectorBuilder.result = `${this.result}[${value}]`;
+    return newCssSelectorBuilder;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    const priority = 5;
+    this.check(priority);
+    const newCssSelectorBuilder = Object.create(cssSelectorBuilder);
+    newCssSelectorBuilder.priority = priority;
+    newCssSelectorBuilder.result = `${this.result}:${value}`;
+    return newCssSelectorBuilder;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    const priority = 6;
+    this.check(priority);
+    const newCssSelectorBuilder = Object.create(cssSelectorBuilder);
+    newCssSelectorBuilder.priority = priority;
+    newCssSelectorBuilder.result = `${this.result}::${value}`;
+    return newCssSelectorBuilder;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const newCssSelectorBuilder = Object.create(cssSelectorBuilder);
+    newCssSelectorBuilder.result = `${selector1.result} ${combinator} ${selector2.result}`;
+    return newCssSelectorBuilder;
+  },
+
+  stringify() {
+    return this.result;
+  },
+
+  check(priority) {
+    if (this.priority > priority) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+
+    if (priority === 1 || priority === 2 || priority === 6) {
+      if (this.priority === priority) {
+        throw new Error(
+          'Element, id and pseudo-element should not occur more then one time inside the selector'
+        );
+      }
+    }
   },
 };
 
